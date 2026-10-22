@@ -11,7 +11,7 @@ on:
         description: "Test: another box, JSON [[[lat,lon],[lat,lon]]] (empty = Sundsvall)"
         required: false
       seconds:
-        description: "Listen this long (s, default 45)"
+        description: "Listen this long (s, default 240)"
         required: false
       dry_run:
         description: "Test: 1 = only count, send nothing"
@@ -20,6 +20,7 @@ on:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

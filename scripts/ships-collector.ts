@@ -9,7 +9,8 @@ if (!apiKey) {
 }
 
 const ingestUrl = new URL("/api/public/ships/ingest", baseUrl).toString();
-const COLLECT_MS = (Number(process.env["AIS_SECONDS"]) || 45) * 1000;
+// 4 minutes: a moored or anchored ship reports its position only every 3 minutes, so 45 s missed most of them
+const COLLECT_MS = (Number(process.env["AIS_SECONDS"]) || 240) * 1000;
 // Koordinater för Sundsvall / Alnösundet
 const BBOX = process.env["AIS_BBOX"] ? JSON.parse(process.env["AIS_BBOX"]) : [[[62.25, 17.15], [62.50, 17.80]]];
 // AIS_DRY_RUN=1: only count and print (a coverage test), send nothing
