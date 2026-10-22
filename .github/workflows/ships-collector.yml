@@ -6,6 +6,13 @@ on:
     - cron: '*/10 * * * *'
   # Tillåter manuell start under fliken "Actions" på GitHub
   workflow_dispatch:
+    inputs:
+      bbox:
+        description: "Test: another box, JSON [[[lat,lon],[lat,lon]]] (empty = Sundsvall)"
+        required: false
+      dry_run:
+        description: "Test: 1 = only count, send nothing"
+        required: false
 
 jobs:
   collect:
@@ -24,4 +31,6 @@ jobs:
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
           SHIPS_INGEST_SECRET: ${{ secrets.SHIPS_INGEST_SECRET }}
           SHIPS_APP_URL: "https://sundsvall-transit-pulse.lovable.app"
+          AIS_BBOX: ${{ github.event.inputs.bbox }}
+          AIS_DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: bun scripts/ships-collector.ts

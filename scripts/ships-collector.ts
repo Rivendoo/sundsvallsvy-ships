@@ -11,7 +11,9 @@ if (!apiKey) {
 const ingestUrl = new URL("/api/public/ships/ingest", baseUrl).toString();
 const COLLECT_MS = 45_000;
 // Koordinater för Sundsvall / Alnösundet
-const BBOX = [[[62.25, 17.15], [62.50, 17.80]]];
+const BBOX = process.env["AIS_BBOX"] ? JSON.parse(process.env["AIS_BBOX"]) : [[[62.25, 17.15], [62.50, 17.80]]];
+// AIS_DRY_RUN=1: only count and print (a coverage test), send nothing
+const DRY = process.env["AIS_DRY_RUN"] === "1";
 
 interface ShipReport {
   mmsi: string;
@@ -107,6 +109,10 @@ async function run() {
     return;
   }
 
+  if (DRY) {
+    for (const r of reports.slice(0, 40)) console.log(r.mmsi, r.name ?? "", r.lat?.toFixed(3), r.lon?.toFixed(3), r.sog ?? "");
+    return;
+  }
   console.log(`Skickar ${reports.length} fartyg till proxyn: ${ingestUrl}`);
   const res = await fetch(ingestUrl, {
     method: "POST",
