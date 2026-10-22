@@ -10,6 +10,9 @@ on:
       bbox:
         description: "Test: another box, JSON [[[lat,lon],[lat,lon]]] (empty = Sundsvall)"
         required: false
+      seconds:
+        description: "Listen this long (s, default 45)"
+        required: false
       dry_run:
         description: "Test: 1 = only count, send nothing"
         required: false
@@ -33,4 +36,5 @@ jobs:
           SHIPS_APP_URL: "https://sundsvall-transit-pulse.lovable.app"
           AIS_BBOX: ${{ github.event.inputs.bbox }}
           AIS_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          AIS_SECONDS: ${{ github.event.inputs.seconds }}
         run: bun scripts/ships-collector.ts

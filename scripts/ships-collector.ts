@@ -9,7 +9,7 @@ if (!apiKey) {
 }
 
 const ingestUrl = new URL("/api/public/ships/ingest", baseUrl).toString();
-const COLLECT_MS = 45_000;
+const COLLECT_MS = (Number(process.env["AIS_SECONDS"]) || 45) * 1000;
 // Koordinater för Sundsvall / Alnösundet
 const BBOX = process.env["AIS_BBOX"] ? JSON.parse(process.env["AIS_BBOX"]) : [[[62.25, 17.15], [62.50, 17.80]]];
 // AIS_DRY_RUN=1: only count and print (a coverage test), send nothing
@@ -38,7 +38,7 @@ async function collectShips(): Promise<ShipReport[]> {
     const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
 
     const timer = setTimeout(() => {
-      console.log(`45 sekunder har gått. Stänger anslutningen. Mottog ${reports.size} unika fartyg.`);
+      console.log(`${COLLECT_MS / 1000} sekunder har gått. Stänger anslutningen. Mottog ${reports.size} unika fartyg.`);
       ws.close();
       resolve(Array.from(reports.values()));
     }, COLLECT_MS);
