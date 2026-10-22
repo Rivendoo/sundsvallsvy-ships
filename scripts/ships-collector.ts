@@ -29,6 +29,7 @@ interface ShipReport {
 
 async function collectShips(): Promise<ShipReport[]> {
   const reports = new Map<string, ShipReport>();
+  let total = 0;
 
   return new Promise((resolve) => {
     console.log("Ansluter till AISStream WebSocket...");
@@ -52,6 +53,10 @@ async function collectShips(): Promise<ShipReport[]> {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(String(event.data));
+        total++;
+        // AISStream answers a bad key or subscription with {"error": "..."} and closes: say so
+        if (data.error || data.Error) { console.error("AISStream svarade med fel:", JSON.stringify(data)); return; }
+        if (total <= 3) console.log("Meddelande", total, data.MessageType, data.MetaData?.MMSI, data.MetaData?.ShipName);
         const mmsi = String(data.MetaData?.MMSI || "");
         if (!mmsi) return;
 
@@ -83,6 +88,10 @@ async function collectShips(): Promise<ShipReport[]> {
       } catch {
         // Ignorera felaktiga paket
       }
+    };
+
+    ws.onclose = (ev) => {
+      console.log(`Anslutningen stängd (kod ${ev.code}${ev.reason ? ", " + ev.reason : ""}), ${total} meddelanden totalt.`);
     };
 
     ws.onerror = (err) => {
