@@ -1,0 +1,27 @@
+name: Ships Collector
+
+on:
+  schedule:
+    # Körs var 10:e minut (GitHub Actions gratiskvot räcker gott och väl)
+    - cron: '*/10 * * * *'
+  # Tillåter manuell start under fliken "Actions" på GitHub
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run collector script
+        env:
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+          SHIPS_INGEST_SECRET: ${{ secrets.SHIPS_INGEST_SECRET }}
+          SHIPS_APP_URL: "https://sundsvall-transit-pulse.lovable.app"
+        run: bun scripts/ships-collector.ts
