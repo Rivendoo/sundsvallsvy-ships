@@ -1,26 +1,37 @@
 name: Ships Collector
 
+# En stafett av långa körningar (2026-10-23): varje körning lyssnar på AISStream i 50 minuter, postar fartygen till
+# proxyn var 30:e sekund och startar sedan nästa körning. AISStreams gratiskonto tillåter bara en anslutning åt
+# gången, så två körningar får aldrig överlappa (concurrency). Cron en gång i timmen är livlinan om stafetten bryts.
+
 on:
   schedule:
-    # Körs var 10:e minut (GitHub Actions gratiskvot räcker gott och väl)
-    - cron: '*/10 * * * *'
-  # Tillåter manuell start under fliken "Actions" på GitHub
+    - cron: '17 * * * *'
+  # Manuell start under fliken "Actions" på GitHub (och stafettens nästa körning)
   workflow_dispatch:
     inputs:
       bbox:
         description: "Test: another box, JSON [[[lat,lon],[lat,lon]]] (empty = Sundsvall)"
         required: false
       seconds:
-        description: "Listen this long (s, default 240)"
+        description: "Run this long (s, default 3000 = 50 min)"
         required: false
       dry_run:
-        description: "Test: 1 = only count, send nothing"
+        description: "Test: 1 = only count, send nothing, start no next run"
         required: false
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: ships-collector
+  cancel-in-progress: false
 
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,6 +42,7 @@ jobs:
           bun-version: latest
 
       - name: Run collector script
+        id: collect
         env:
           AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
           SHIPS_INGEST_SECRET: ${{ secrets.SHIPS_INGEST_SECRET }}
@@ -38,4 +50,16 @@ jobs:
           AIS_BBOX: ${{ github.event.inputs.bbox }}
           AIS_DRY_RUN: ${{ github.event.inputs.dry_run }}
           AIS_SECONDS: ${{ github.event.inputs.seconds }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun scripts/ships-collector.ts
+
+      # Livlinan: startar nästa körning om skriptet inte redan gjorde det (krasch, timeout, avbrott). Aldrig för en
+      # torrkörning, och inte när skriptet stoppade på fel nyckel (då skulle körningarna loopa).
+      - name: Start next run
+        if: always() && steps.collect.outputs.dispatched != 'true' && steps.collect.outputs.stop != 'true' && github.event.inputs.dry_run != '1'
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/ships-collector.yml/dispatches \
+            -d '{"ref":"main"}'
